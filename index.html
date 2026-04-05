@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="신보업무">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>신보 업무관리</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow: hidden; background: #f2f4f7; }
+    body { font-family: 'Noto Sans KR', -apple-system, sans-serif; font-size: 14px; color: #1a1a1a; }
+
+    /* ── App Shell ── */
+    #app { display: flex; flex-direction: column; height: 100vh; height: -webkit-fill-available; max-width: 430px; margin: 0 auto; background: #f2f4f7; position: relative; }
+
+    /* ── Header ── */
+    .hdr { background: #0f2d52; padding: env(safe-area-inset-top) 18px 14px; padding-top: calc(env(safe-area-inset-top) + 12px); }
+    .hdr-row { display: flex; justify-content: space-between; align-items: flex-end; }
+    .hdr-title { color: #fff; font-size: 18px; font-weight: 500; }
+    .hdr-sub { color: #7ba8cc; font-size: 11px; margin-top: 2px; }
+    .hdr-add { background: rgba(255,255,255,0.15); border: none; border-radius: 8px; color: #fff; font-size: 12px; padding: 6px 12px; cursor: pointer; font-family: inherit; }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav { display: flex; background: #fff; border-top: 0.5px solid #ddd; padding-bottom: env(safe-area-inset-bottom); flex-shrink: 0; }
+    .nav-btn { flex: 1; border: none; background: none; padding: 10px 0 8px; cursor: pointer; font-family: inherit; }
+    .nav-icon { font-size: 20px; display: block; }
+    .nav-label { font-size: 9px; color: #999; display: block; margin-top: 2px; }
+    .nav-btn.active .nav-label { color: #0f2d52; }
+
+    /* ── Screen / Scroll ── */
+    .screen-wrap { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .screen-content { padding: 12px; padding-bottom: 20px; }
+
+    /* ── Summary Cards ── */
+    .sum-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .sum-card { background: #fff; border-radius: 10px; padding: 10px 8px; text-align: center; }
+    .sum-n { font-size: 24px; font-weight: 500; }
+    .sum-l { font-size: 10px; color: #888; margin-top: 2px; }
+    .red { color: #c0392b; } .amber { color: #c77b17; } .blue { color: #185fa5; }
+
+    /* ── Section Label ── */
+    .sec-label { font-size: 11px; font-weight: 500; color: #888; margin: 4px 0 8px; }
+
+    /* ── Case Card ── */
+    .case-card { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; border: 0.5px solid #e8e8e8; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+    .card-name { font-size: 15px; font-weight: 500; }
+    .card-kc { font-size: 11px; color: #888; margin-top: 2px; }
+
+    /* Tags & Badges */
+    .tag { font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+    .tag-blue { background: #e6f1fb; color: #185fa5; }
+    .tag-pink { background: #fbeaf0; color: #993556; }
+    .tag-green { background: #eaf3de; color: #3b6d11; }
+    .tag-red { background: #fcebeb; color: #a32d2d; }
+    .tag-teal { background: #e1f5ee; color: #0f6e56; }
+    .tag-gray { background: #f0f0f0; color: #666; }
+
+    .badge { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+    .badge-red { background: #fcebeb; color: #a32d2d; }
+    .badge-amber { background: #faeeda; color: #854f0b; }
+    .badge-blue { background: #e6f1fb; color: #185fa5; }
+    .badge-green { background: #eaf3de; color: #3b6d11; }
+    .badge-gray { background: #f0f0f0; color: #666; }
+
+    /* Date Row */
+    .date-row { display: flex; gap: 8px; }
+    .date-item { flex: 1; border-radius: 8px; padding: 6px 8px; }
+    .date-item .dl { font-size: 9px; margin-bottom: 2px; }
+    .date-item .dv { font-size: 12px; font-weight: 500; }
+    .date-item .ds { font-size: 9px; margin-top: 2px; }
+    .di-normal { background: #f5f5f5; }
+    .di-normal .dl { color: #888; } .di-normal .dv { color: #1a1a1a; }
+    .di-urgent { background: #fcebeb; border: 0.5px solid #f7c1c1; }
+    .di-urgent .dl { color: #a32d2d; } .di-urgent .dv { color: #791f1f; } .di-urgent .ds { color: #a32d2d; }
+    .di-unset { background: #fff8e1; border: 0.5px solid #fac775; }
+    .di-unset .dl { color: #854f0b; } .di-unset .dv { color: #633806; } .di-unset .ds { color: #7b6000; }
+    .di-done { background: #eaf3de; }
+    .di-done .dl { color: #3b6d11; } .di-done .dv { color: #27500a; }
+
+    .gontak { display: inline-block; font-size: 9px; padding: 2px 7px; border-radius: 10px; background: #faeeda; color: #854f0b; border: 0.5px solid #fac775; margin-top: 6px; }
+
+    /* Empty State */
+    .empty { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; line-height: 1.8; }
+
+    /* ── Detail Screen ── */
+    .detail-hdr { background: #0f2d52; padding: env(safe-area-inset-top) 18px 16px; padding-top: calc(env(safe-area-inset-top) + 10px); }
+    .back-btn { color: #7ba8cc; font-size: 13px; margin-bottom: 8px; cursor: pointer; }
+    .detail-name { color: #fff; font-size: 17px; font-weight: 500; }
+    .detail-sub { color: #7ba8cc; font-size: 11px; margin-top: 3px; }
+
+    /* D-day Blocks */
+    .dday-block { border-radius: 10px; padding: 13px 14px; margin-bottom: 8px; text-align: center; }
+    .dday-block .db-label { font-size: 11px; font-weight: 500; margin-bottom: 4px; }
+    .dday-block .db-date { font-size: 19px; font-weight: 500; }
+    .dday-block .db-sub { font-size: 11px; margin-top: 3px; }
+    .db-urgent { background: #fcebeb; border: 0.5px solid #f7c1c1; }
+    .db-urgent .db-label, .db-urgent .db-sub { color: #a32d2d; } .db-urgent .db-date { color: #791f1f; }
+    .db-amber { background: #faeeda; border: 0.5px solid #fac775; }
+    .db-amber .db-label, .db-amber .db-sub { color: #854f0b; } .db-amber .db-date { color: #633806; }
+    .db-unset { background: #fff8e1; border: 0.5px solid #fac775; }
+    .db-unset .db-label, .db-unset .db-sub { color: #7b6000; } .db-unset .db-date { color: #4a3800; }
+    .db-done { background: #eaf3de; border: 0.5px solid #c0dd97; }
+    .db-done .db-label, .db-done .db-sub { color: #3b6d11; } .db-done .db-date { color: #27500a; }
+    .db-normal { background: #e6f1fb; border: 0.5px solid #b5d4f4; }
+    .db-normal .db-label, .db-normal .db-sub { color: #185fa5; } .db-normal .db-date { color: #0c447c; }
+
+    /* Info Card */
+    .info-card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 8px; }
+    .info-card-title { font-size: 11px; font-weight: 500; color: #888; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 0.5px solid #eee; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 0.5px solid #f0f0f0; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: 12px; color: #888; }
+    .info-val { font-size: 12px; font-weight: 500; }
+    .val-red { color: #c0392b; } .val-green { color: #27500a; } .val-amber { color: #854f0b; }
+
+    /* Doc Box */
+    .doc-box { border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+    .doc-box-warn { background: #fcebeb; border: 0.5px solid #f7c1c1; }
+    .doc-box-ok { background: #e6f1fb; border: 0.5px solid #b5d4f4; }
+    .doc-box-title { font-size: 11px; font-weight: 500; margin-bottom: 8px; }
+    .doc-box-warn .doc-box-title { color: #a32d2d; }
+    .doc-box-ok .doc-box-title { color: #185fa5; }
+    .doc-cond { font-size: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.5); margin-bottom: 8px; }
+    .doc-box-warn .doc-cond { color: #a32d2d; }
+    .doc-box-ok .doc-cond { color: #185fa5; }
+    .doc-item { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 5px; font-size: 12px; line-height: 1.4; }
+    .doc-item:last-child { margin-bottom: 0; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .dot-r { background: #a32d2d; } .dot-b { background: #185fa5; } .dot-a { background: #c77b17; }
+    .doc-item-r { color: #791f1f; } .doc-item-b { color: #0c447c; } .doc-item-a { color: #854f0b; }
+    .doc-note { font-size: 10px; padding: 5px 8px; border-radius: 7px; margin-top: 5px; line-height: 1.5; }
+    .doc-note-info { background: rgba(255,255,255,0.5); color: #185fa5; }
+    .doc-note-warn { background: #fff3cd; color: #7b6000; border: 0.5px solid #fac775; margin-top: 4px; }
+
+    /* Memo */
+    .memo-box { background: #fffde7; border: 0.5px solid #fac775; border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #4a3800; line-height: 1.6; margin-bottom: 8px; }
+
+    /* Action Row */
+    .action-row { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-edit { flex: 1; background: #e6f1fb; color: #185fa5; border: 0.5px solid #b5d4f4; border-radius: 10px; padding: 12px; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .btn-delete { flex: 1; background: #fcebeb; color: #a32d2d; border: 0.5px solid #f7c1c1; border-radius: 10px; padding: 12px; font-size: 13px; cursor: pointer; font-family: inherit; }
+
+    /* ── Form Screen ── */
+    .form-hdr { background: #0f2d52; padding: env(safe-area-inset-top) 18px 14px; padding-top: calc(env(safe-area-inset-top) + 10px); }
+    .form-sec { font-size: 11px; font-weight: 500; color: #0f2d52; background: #e6f1fb; border-radius: 6px; padding: 6px 10px; margin: 4px 0 10px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { font-size: 11px; color: #666; display: block; margin-bottom: 5px; font-weight: 500; }
+    .form-input { width: 100%; border: 0.5px solid #ccc; border-radius: 8px; padding: 10px 12px; font-size: 13px; background: #fff; color: #1a1a1a; outline: none; font-family: inherit; }
+    .form-input:focus { border-color: #185fa5; }
+    .form-select { width: 100%; border: 0.5px solid #ccc; border-radius: 8px; padding: 10px 12px; font-size: 13px; background: #fff; color: #1a1a1a; font-family: inherit; }
+    textarea.form-input { resize: none; }
+    .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .toggle-btn { border: 0.5px solid #ccc; border-radius: 8px; padding: 8px 14px; font-size: 12px; color: #888; background: #fff; cursor: pointer; font-family: inherit; }
+    .toggle-btn.on { border-color: #185fa5; background: #e6f1fb; color: #185fa5; font-weight: 500; }
+    .date-row-form { display: flex; gap: 8px; align-items: center; }
+    .date-row-form input { flex: 1; }
+    .unset-check-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #888; white-space: nowrap; cursor: pointer; }
+    .btn-primary { width: 100%; background: #0f2d52; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 15px; cursor: pointer; font-family: inherit; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   CORE: Storage
+   localStorage 래퍼 - 키/값 저장
+   나중에 새 기능 추가할 때도 같은 Storage 사용
+============================================================ */
+const Storage = {
+  get(key) {
+    try { return JSON.parse(localStorage.getItem(key)); }
+    catch { return null; }
+  },
+  set(key, val) { localStorage.setItem(key, JSON.stringify(val)); },
+  del(key) { localStorage.removeItem(key); }
+};
+
+/* ============================================================
+   CORE: App Router
+   modules 배열에 기능 모듈을 등록하면 하단 탭이 자동으로 추가됨
+   새 기능 추가 시: App.registerModule(새모듈) 한 줄만 추가
+============================================================ */
+const App = {
+  modules: [],
+  state: { module: null, screen: 'list', id: null },
+
+  registerModule(mod) {
+    this.modules.push(mod);
+    if (!this.state.module) this.state.module = mod.id;
+  },
+
+  go(module, screen, id = null) {
+    this.state = { module, screen, id };
+    this.render();
+    window.scrollTo(0, 0);
+  },
+
+  back() { this.go(this.state.module, 'list'); },
+
+  render() {
+    const mod = this.modules.find(m => m.id === this.state.module);
+    if (!mod) return;
+    const { screen, id } = this.state;
+
+    document.getElementById('app').innerHTML = `
+      ${mod.renderHeader(screen, id)}
+      <div class="screen-wrap">
+        <div class="screen-content">
+          ${mod.renderBody(screen, id)}
+        </div>
+      </div>
+      ${this.renderNav()}
+    `;
+
+    mod.onMount && mod.onMount(screen, id);
+  },
+
+  renderNav() {
+    return `
+      <nav class="bottom-nav">
+        ${this.modules.map(m => `
+          <button class="nav-btn ${this.state.module === m.id ? 'active' : ''}"
+                  onclick="App.go('${m.id}','list')">
+            <span class="nav-icon">${m.icon}</span>
+            <span class="nav-label">${m.name}</span>
+          </button>
+        `).join('')}
+      </nav>
+    `;
+  },
+
+  init() { this.render(); }
+};
+
+/* ============================================================
+   UTILITY: 공통 함수
+============================================================ */
+const Util = {
+  dday(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    d.setHours(0,0,0,0);
+    const t = new Date(); t.setHours(0,0,0,0);
+    return Math.ceil((d - t) / 86400000);
+  },
+  fmtDate(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return `${d.getMonth()+1}.${d.getDate()} (${['일','월','화','수','목','금','토'][d.getDay()]})`;
+  },
+  fmtMoney(n) {
+    if (!n) return '-';
+    return Number(n).toLocaleString('ko-KR') + '원';
+  },
+  ddayBadge(d) {
+    if (d === null) return '';
+    if (d < 0) return `<span class="badge badge-gray">완료</span>`;
+    if (d === 0) return `<span class="badge badge-red">D-day</span>`;
+    if (d <= 7) return `<span class="badge badge-red">D-${d}</span>`;
+    if (d <= 30) return `<span class="badge badge-amber">D-${d}</span>`;
+    return `<span class="badge badge-blue">D-${d}</span>`;
+  },
+  uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); },
+};
+
+/* ============================================================
+   MODULE: 경매관리 (Auction)
+   
+   새 기능 모듈 추가 방법:
+   1. 이 모듈을 복사해서 id, name, icon 변경
+   2. getCases(), saveCase() 등을 새 도메인에 맞게 수정
+   3. 파일 하단에서 App.registerModule(새모듈) 추가
+============================================================ */
+const AuctionModule = {
+  id: 'auction',
+  name: '경매관리',
+  icon: '⚖️',
+
+  COURTS: {
+    dg: ['대구지방법원','대구지방법원 서부지원','대구지방법원 경주지원','대구지방법원 김천지원','대구지방법원 안동지원','대구지방법원 상주지원','대구지방법원 의성지원','대구지방법원 영덕지원','대구지방법원 포항지원'],
+    gn: ['창원지방법원','창원지방법원 마산지원','창원지방법원 통영지원','창원지방법원 밀양지원','창원지방법원 거창지원','창원지방법원 진주지원'],
+    se: ['서울중앙지방법원','서울동부지방법원','서울남부지방법원','서울북부지방법원','서울서부지방법원','수원지방법원','수원지방법원 성남지원','수원지방법원 안양지원','수원지방법원 안산지원','수원지방법원 평택지원','의정부지방법원','의정부지방법원 고양지원','인천지방법원','인천지방법원 부천지원'],
+    bs: ['부산지방법원','부산지방법원 동부지원','부산지방법원 서부지원','울산지방법원'],
+    etc: ['광주지방법원','전주지방법원','대전지방법원','청주지방법원','춘천지방법원','제주지방법원']
+  },
+
+  /* ── Data ── */
+  getAll() { return Storage.get('auction_cases') || []; },
+  getOne(id) { return this.getAll().find(c => c.id === id); },
+  save(c) {
+    const all = this.getAll();
+    const idx = all.findIndex(x => x.id === c.id);
+    if (idx >= 0) all[idx] = c; else all.push(c);
+    Storage.set('auction_cases', all);
+  },
+  delete(id) { Storage.set('auction_cases', this.getAll().filter(c => c.id !== id)); },
+
+  /* ── 서류 자동 산출 로직 ── */
+  getDocs(c) {
+    const docs = [], notes = [], warns = [];
+    let isWarn = false;
+
+    if (c.rightType === '근저당') {
+      docs.push({ cls: 'b', text: '채권계산서 ★ 필수' });
+      notes.push('근저당권자 → 배당요구 불요, 자동 배당참가');
+      notes.push('배당요구종기일까지 채권계산서 스스로 제출 (법원이 최고 의무 없음)');
+    } else {
+      // 가압류
+      if (c.seizureTiming === '개시전') {
+        docs.push({ cls: 'b', text: '채권계산서 ★ 필수' });
+        if (c.hasExecTitle) docs.push({ cls: 'b', text: '집행권원 사본 (있으면 제출)' });
+        notes.push('경매개시결정 전 가압류 → 배당요구 불요 (자동참가)');
+        notes.push('실무상 배당요구서도 함께 제출하면 분쟁 예방에 유리');
+        warns.push('⚠ 배당금은 채권 확정 전까지 법원 공탁 → 집행권원 확정 후 지급');
+      } else if (c.seizureTiming === '개시후') {
+        isWarn = true;
+        docs.push({ cls: 'r', text: '배당요구서 (제목: "배당요구") ★ 필수' });
+        docs.push({ cls: 'r', text: '채권계산서 ★ 필수' });
+        docs.push({ cls: 'r', text: '가압류결정사본' });
+        docs.push({ cls: 'r', text: '등기사항전부증명서' });
+        if (c.hasExecTitle) docs.push({ cls: 'a', text: '집행권원 사본 ★ 권장' });
+        else docs.push({ cls: 'a', text: '집행권원 취득 즉시 추가 제출' });
+        warns.push('⚠ 제목을 "권리신고"로 쓰면 배당요구 효력 없음 (교본 1.2 참고)');
+        warns.push('⚠ 배당금은 채권 확정 전까지 법원 공탁');
+        if (c.auction === '신보신청') warns.push('⚠ 가압류권자는 신보가 경매신청해도 배당요구 별도 필요');
+      }
+    }
+    return { docs, notes, warns, isWarn };
+  },
+
+  docsHtml(c) {
+    const { docs, notes, warns, isWarn } = this.getDocs(c);
+    const boxCls = isWarn ? 'doc-box-warn' : 'doc-box-ok';
+    const cond = `${c.rightType}${c.rightType === '가압류' ? ' · ' + (c.seizureTiming || '시점미정') : ''} · 집행권원 ${c.hasExecTitle ? '보유' : '미보유'} · ${c.auction === '신보신청' ? '신보 신청' : '타인 신청'}`;
+    const dotMap = { r:'dot-r', b:'dot-b', a:'dot-a' };
+    const clsMap = { r:'doc-item-r', b:'doc-item-b', a:'doc-item-a' };
+    return `
+      <div class="doc-box ${boxCls}">
+        <div class="doc-box-title">📌 제출 서류 (자동 산출)</div>
+        <div class="doc-cond">${cond}</div>
+        ${docs.map(d => `<div class="doc-item ${clsMap[d.cls]}"><div class="dot ${dotMap[d.cls]}"></div>${d.text}</div>`).join('')}
+        ${notes.map(n => `<div class="doc-note doc-note-info">ℹ ${n}</div>`).join('')}
+        ${warns.map(w => `<div class="doc-note doc-note-warn">${w}</div>`).join('')}
+      </div>`;
+  },
+
+  /* ── Header ── */
+  renderHeader(screen, id) {
+    if (screen === 'list') {
+      const now = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
+      return `
+        <div class="hdr">
+          <div class="hdr-row">
+            <div><div class="hdr-title">경매 기일 관리</div><div class="hdr-sub">${now} 기준</div></div>
+            <button class="hdr-add" onclick="App.go('auction','add')">+ 등록</button>
+          </div>
+        </div>`;
+    }
+    if (screen === 'detail') {
+      const c = this.getOne(id);
+      return `
+        <div class="detail-hdr">
+          <div class="back-btn" onclick="App.go('auction','list')">← 목록으로</div>
+          <div class="detail-name">${c ? c.company : '-'}</div>
+          <div class="detail-sub">${c ? c.kc + ' · ' + (c.court || '-') : ''}</div>
+        </div>`;
+    }
+    if (screen === 'add' || screen === 'edit') {
+      const isEdit = screen === 'edit';
+      const backTarget = isEdit ? `App.go('auction','detail','${id}')` : `App.go('auction','list')`;
+      return `
+        <div class="form-hdr">
+          <div class="back-btn" onclick="${backTarget}" style="color:#7ba8cc;font-size:13px;margin-bottom:8px;cursor:pointer;">← 취소</div>
+          <div class="hdr-title">${isEdit ? '사건 수정' : '새 사건 등록'}</div>
+        </div>`;
+    }
+    return '';
+  },
+
+  /* ── Body ── */
+  renderBody(screen, id) {
+    if (screen === 'list') return this.renderList();
+    if (screen === 'detail') return this.renderDetail(id);
+    if (screen === 'add') return this.renderForm(null);
+    if (screen === 'edit') return this.renderForm(id);
+    return '';
+  },
+
+  /* ── List ── */
+  renderList() {
+    const all = this.getAll();
+    if (!all.length) return `<div class="empty">등록된 사건이 없습니다.<br>상단 <b>+ 등록</b>을 눌러 시작하세요.</div>`;
+
+    const sorted = [...all].sort((a, b) => {
+      const da = Util.dday(a.termDate) ?? 9999;
+      const db = Util.dday(b.termDate) ?? 9999;
+      return da - db;
+    });
+
+    const urgent = sorted.filter(c => { const d = Util.dday(c.termDate); return d !== null && d >= 0 && d <= 7; });
+    const upcoming = sorted.filter(c => { const d = Util.dday(c.termDate); return d !== null && d > 7 && d <= 30; });
+    const rest = sorted.filter(c => { const d = Util.dday(c.termDate); return d === null || d < 0 || d > 30; });
+
+    const sumUrgent = urgent.length;
+    const sumUpcoming = upcoming.length;
+
+    return `
+      <div class="sum-row">
+        <div class="sum-card"><div class="sum-n red">${sumUrgent}</div><div class="sum-l">D-7 이내</div></div>
+        <div class="sum-card"><div class="sum-n amber">${sumUpcoming}</div><div class="sum-l">D-30 이내</div></div>
+        <div class="sum-card"><div class="sum-n blue">${all.length}</div><div class="sum-l">전체 사건</div></div>
+      </div>
+      ${urgent.length ? `<div class="sec-label">⚠ 긴급 · D-7 이내</div>${urgent.map(c => this.renderCard(c)).join('')}` : ''}
+      ${upcoming.length ? `<div class="sec-label">📅 D-30 이내</div>${upcoming.map(c => this.renderCard(c)).join('')}` : ''}
+      ${rest.length ? `<div class="sec-label">전체</div>${rest.map(c => this.renderCard(c)).join('')}` : ''}
+    `;
+  },
+
+  renderCard(c) {
+    const td = Util.dday(c.termDate);
+    const dd = c.dividendDate ? Util.dday(c.dividendDate) : null;
+    const mostUrgent = [td, dd].filter(d => d !== null && d >= 0).sort((a,b) => a-b)[0];
+
+    const termBox = () => {
+      if (td === null) return `<div class="date-item di-normal"><div class="dl">배당요구종기</div><div class="dv">-</div></div>`;
+      if (td < 0) return `<div class="date-item di-done"><div class="dl">배당요구종기</div><div class="dv">완료</div></div>`;
+      if (td <= 7) return `<div class="date-item di-urgent"><div class="dl">배당요구종기</div><div class="dv">${Util.fmtDate(c.termDate)}</div><div class="ds">D-${td}</div></div>`;
+      return `<div class="date-item di-normal"><div class="dl">배당요구종기</div><div class="dv">${Util.fmtDate(c.termDate)}</div></div>`;
+    };
+    const divBox = () => {
+      if (!c.dividendDate) return `<div class="date-item di-unset"><div class="dl">배당기일</div><div class="dv">미 확 정</div><div class="ds">확정 후 채권계산서</div></div>`;
+      if (dd !== null && dd <= 14 && dd >= 0) return `<div class="date-item di-urgent"><div class="dl">배당기일</div><div class="dv">${Util.fmtDate(c.dividendDate)}</div><div class="ds">D-${dd}</div></div>`;
+      return `<div class="date-item di-normal"><div class="dl">배당기일</div><div class="dv">${Util.fmtDate(c.dividendDate)}</div></div>`;
+    };
+
+    const timingTag = c.rightType === '가압류'
+      ? (c.seizureTiming === '개시전' ? `<span class="tag tag-green">개시전</span>` : `<span class="tag tag-red">개시후</span>`)
+      : '';
+
+    return `
+      <div class="case-card" onclick="App.go('auction','detail','${c.id}')">
+        <div class="card-top">
+          <div>
+            <div class="card-tags">
+              ${c.rightType === '근저당' ? `<span class="tag tag-blue">근저당</span>` : `<span class="tag tag-pink">가압류</span>`}
+              ${timingTag}
+              <span class="tag ${c.auction === '신보신청' ? 'tag-teal' : 'tag-gray'}">${c.auction === '신보신청' ? '신보신청' : '타인신청'}</span>
+            </div>
+            <div class="card-name">${c.company}</div>
+            <div class="card-kc">${c.kc}${c.court ? ' · ' + c.court : ''}</div>
+          </div>
+          ${mostUrgent !== undefined ? Util.ddayBadge(mostUrgent) : Util.ddayBadge(td)}
+        </div>
+        <div class="date-row">${termBox()}${divBox()}</div>
+        ${c.rightType === '가압류' ? `<div class="gontak">⚠ 배당금 공탁 예정</div>` : ''}
+      </div>`;
+  },
+
+  /* ── Detail ── */
+  renderDetail(id) {
+    const c = this.getOne(id);
+    if (!c) return `<div class="empty">사건을 찾을 수 없습니다.</div>`;
+
+    const td = Util.dday(c.termDate);
+    const dd = c.dividendDate ? Util.dday(c.dividendDate) : null;
+
+    const termBlock = () => {
+      if (td < 0) return `<div class="dday-block db-done"><div class="db-label">배당요구종기 — 완료</div><div class="db-date">${Util.fmtDate(c.termDate)}</div></div>`;
+      if (td <= 7) return `<div class="dday-block db-urgent"><div class="db-label">배당요구종기 — D-${td} 긴급</div><div class="db-date">${Util.fmtDate(c.termDate)}</div><div class="db-sub">이 날 이전에 법원 접수 필요</div></div>`;
+      if (td <= 30) return `<div class="dday-block db-amber"><div class="db-label">배당요구종기 — D-${td}</div><div class="db-date">${Util.fmtDate(c.termDate)}</div></div>`;
+      return `<div class="dday-block db-normal"><div class="db-label">배당요구종기 — D-${td}</div><div class="db-date">${Util.fmtDate(c.termDate)}</div></div>`;
+    };
+
+    const divBlock = () => {
+      if (!c.dividendDate) return `<div class="dday-block db-unset"><div class="db-label">배당기일 — 미확정</div><div class="db-date">법원 지정 대기중</div><div class="db-sub">확정 즉시 채권계산서 추가 제출</div></div>`;
+      if (dd < 0) return `<div class="dday-block db-done"><div class="db-label">배당기일 — 완료</div><div class="db-date">${Util.fmtDate(c.dividendDate)}</div></div>`;
+      if (dd <= 14) return `<div class="dday-block db-urgent"><div class="db-label">배당기일 — D-${dd}</div><div class="db-date">${Util.fmtDate(c.dividendDate)}</div><div class="db-sub">채권계산서 제출 필요</div></div>`;
+      return `<div class="dday-block db-normal"><div class="db-label">배당기일 — D-${dd}</div><div class="db-date">${Util.fmtDate(c.dividendDate)}</div></div>`;
+    };
+
+    return `
+      ${termBlock()}
+      ${divBlock()}
+      <div class="info-card">
+        <div class="info-card-title">권리 정보</div>
+        <div class="info-row"><span class="info-label">권리 유형</span><span class="info-val">${c.rightType}</span></div>
+        ${c.rightType === '가압류' ? `<div class="info-row"><span class="info-label">가압류 시점</span><span class="info-val ${c.seizureTiming === '개시후' ? 'val-red' : 'val-green'}">${c.seizureTiming}</span></div>` : ''}
+        <div class="info-row"><span class="info-label">집행권원</span><span class="info-val ${c.hasExecTitle ? 'val-green' : 'val-amber'}">${c.hasExecTitle ? '보유' : '미보유'}</span></div>
+        <div class="info-row"><span class="info-label">경매신청</span><span class="info-val">${c.auction === '신보신청' ? '신보 신청' : '타인 신청'}</span></div>
+        <div class="info-row"><span class="info-label">채권원금</span><span class="info-val">${Util.fmtMoney(c.principal)}</span></div>
+        ${c.court ? `<div class="info-row"><span class="info-label">담당법원</span><span class="info-val">${c.court}</span></div>` : ''}
+        ${c.caseNumber ? `<div class="info-row"><span class="info-label">사건번호</span><span class="info-val">${c.caseNumber}</span></div>` : ''}
+      </div>
+      ${this.docsHtml(c)}
+      ${c.memo ? `<div class="memo-box">📝 ${c.memo}</div>` : ''}
+      <div class="action-row">
+        <button class="btn-edit" onclick="App.go('auction','edit','${c.id}')">수정</button>
+        <button class="btn-delete" onclick="AuctionModule.confirmDelete('${c.id}')">삭제</button>
+      </div>`;
+  },
+
+  confirmDelete(id) {
+    if (confirm('이 사건을 삭제하시겠습니까?')) {
+      this.delete(id);
+      App.go('auction', 'list');
+    }
+  },
+
+  /* ── Form ── */
+  renderForm(id) {
+    const c = id ? this.getOne(id) : null;
+    const v = (f, def = '') => (c && c[f] !== undefined && c[f] !== null) ? c[f] : def;
+    const on = (f, val) => v(f) == val ? 'on' : '';
+    const courtOpts = (region) => {
+      if (!region || !this.COURTS[region]) return '<option>-- 지역 먼저 선택 --</option>';
+      return this.COURTS[region].map(ct => `<option ${ct === v('court') ? 'selected' : ''}>${ct}</option>`).join('');
+    };
+
+    return `
+      <div class="form-sec">기본 정보</div>
+      <div class="form-group"><label>KC 번호 *</label>
+        <input id="f_kc" class="form-input" value="${v('kc')}" placeholder="KC-2024-00000"></div>
+      <div class="form-group"><label>업체명 *</label>
+        <input id="f_company" class="form-input" value="${v('company')}" placeholder="예) (주)대한물류"></div>
+      <div class="form-group"><label>지역</label>
+        <select id="f_region" class="form-select" onchange="AuctionModule.onRegionChange()">
+          <option value="">-- 지역 선택 --</option>
+          <option value="dg" ${v('region')==='dg'?'selected':''}>대구 · 경북</option>
+          <option value="gn" ${v('region')==='gn'?'selected':''}>경남</option>
+          <option value="se" ${v('region')==='se'?'selected':''}>서울 · 수도권</option>
+          <option value="bs" ${v('region')==='bs'?'selected':''}>부산 · 울산</option>
+          <option value="etc" ${v('region')==='etc'?'selected':''}>기타 전국</option>
+        </select></div>
+      <div class="form-group"><label>담당법원</label>
+        <select id="f_court" class="form-select">${courtOpts(v('region'))}</select></div>
+      <div class="form-group"><label>사건번호</label>
+        <input id="f_caseNumber" class="form-input" value="${v('caseNumber')}" placeholder="2024타경 00000"></div>
+
+      <div class="form-sec">권리 구분 → 서류 자동 결정</div>
+
+      <div class="form-group"><label>권리 유형 *</label>
+        <div class="toggle-group" id="tg_right">
+          <button class="toggle-btn ${on('rightType','근저당') || (!c ? 'on' : '')}" onclick="AuctionModule.pick('right',this)">근저당권자</button>
+          <button class="toggle-btn ${on('rightType','가압류')}" onclick="AuctionModule.pick('right',this)">가압류권자</button>
+        </div></div>
+
+      <div class="form-group" id="tg_timing_wrap" style="${v('rightType')==='가압류' ? '' : 'display:none'}">
+        <label>가압류 시점 *</label>
+        <div class="toggle-group" id="tg_timing">
+          <button class="toggle-btn ${on('seizureTiming','개시전')}" onclick="AuctionModule.pick('timing',this)">경매개시결정 전</button>
+          <button class="toggle-btn ${on('seizureTiming','개시후')}" onclick="AuctionModule.pick('timing',this)">경매개시결정 후</button>
+        </div></div>
+
+      <div class="form-group"><label>집행권원 보유</label>
+        <div class="toggle-group" id="tg_exec">
+          <button class="toggle-btn ${v('hasExecTitle')===true||v('hasExecTitle')==='true' ? 'on' : ''}" onclick="AuctionModule.pick('exec',this)">있음</button>
+          <button class="toggle-btn ${!c||v('hasExecTitle')===false||v('hasExecTitle')==='false'||v('hasExecTitle')==='' ? 'on' : ''}" onclick="AuctionModule.pick('exec',this)">없음</button>
+        </div></div>
+
+      <div class="form-group"><label>경매신청</label>
+        <div class="toggle-group" id="tg_auction">
+          <button class="toggle-btn ${on('auction','신보신청') || (!c ? 'on' : '')}" onclick="AuctionModule.pick('auction',this)">신보 신청</button>
+          <button class="toggle-btn ${on('auction','타인신청')}" onclick="AuctionModule.pick('auction',this)">타인 신청</button>
+        </div></div>
+
+      <div class="form-sec">기일 정보</div>
+
+      <div class="form-group"><label>배당요구종기 *</label>
+        <input id="f_termDate" class="form-input" type="date" value="${v('termDate')}"></div>
+      <div class="form-group"><label>배당기일</label>
+        <div class="date-row-form">
+          <input id="f_divDate" class="form-input" type="date" value="${v('dividendDate')}" ${!v('dividendDate') && c ? 'disabled' : ''}>
+          <label class="unset-check-label">
+            <input type="checkbox" id="f_unset" ${!v('dividendDate') && c ? 'checked' : ''}
+              onchange="document.getElementById('f_divDate').disabled=this.checked;if(this.checked)document.getElementById('f_divDate').value='';">
+            미확정
+          </label>
+        </div></div>
+      <div class="form-group"><label>채권원금 (원)</label>
+        <input id="f_principal" class="form-input" type="number" value="${v('principal')}" placeholder="0"></div>
+      <div class="form-group"><label>메모</label>
+        <textarea id="f_memo" class="form-input" rows="3" placeholder="특이사항 등">${v('memo')}</textarea></div>
+
+      <button class="btn-primary" onclick="AuctionModule.submitForm('${id||''}')">
+        ${id ? '수정 완료' : '저장하기'}
+      </button>`;
+  },
+
+  pick(group, el) {
+    el.parentNode.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('on'));
+    el.classList.add('on');
+    if (group === 'right') {
+      const isSeizure = el.textContent.includes('가압류');
+      document.getElementById('tg_timing_wrap').style.display = isSeizure ? '' : 'none';
+    }
+  },
+
+  onRegionChange() {
+    const region = document.getElementById('f_region').value;
+    const sel = document.getElementById('f_court');
+    sel.innerHTML = region && this.COURTS[region]
+      ? this.COURTS[region].map(c => `<option>${c}</option>`).join('')
+      : '<option>-- 지역 먼저 선택 --</option>';
+  },
+
+  getToggleVal(groupId) {
+    const on = document.querySelector(`#${groupId} .toggle-btn.on`);
+    return on ? on.textContent.trim() : null;
+  },
+
+  submitForm(id) {
+    const kc = document.getElementById('f_kc').value.trim();
+    const company = document.getElementById('f_company').value.trim();
+    const termDate = document.getElementById('f_termDate').value;
+    if (!kc || !company || !termDate) { alert('KC번호, 업체명, 배당요구종기는 필수입니다.'); return; }
+
+    const rightRaw = this.getToggleVal('tg_right') || '근저당권자';
+    const rightType = rightRaw.includes('근저당') ? '근저당' : '가압류';
+    const timingRaw = this.getToggleVal('tg_timing') || '';
+    const seizureTiming = timingRaw.includes('전') ? '개시전' : timingRaw.includes('후') ? '개시후' : '';
+    const execRaw = this.getToggleVal('tg_exec') || '없음';
+    const hasExecTitle = execRaw === '있음';
+    const auctionRaw = this.getToggleVal('tg_auction') || '신보 신청';
+    const auction = auctionRaw.includes('신보') ? '신보신청' : '타인신청';
+
+    const unset = document.getElementById('f_unset').checked;
+    const existing = id ? this.getOne(id) : null;
+
+    const c = {
+      id: id || Util.uid(),
+      kc, company,
+      region: document.getElementById('f_region').value,
+      court: document.getElementById('f_court').value,
+      caseNumber: document.getElementById('f_caseNumber').value.trim(),
+      rightType, seizureTiming, hasExecTitle, auction, termDate,
+      dividendDate: unset ? '' : (document.getElementById('f_divDate').value || ''),
+      principal: document.getElementById('f_principal').value || '',
+      memo: document.getElementById('f_memo').value.trim(),
+      createdAt: existing ? existing.createdAt : Date.now()
+    };
+
+    this.save(c);
+    App.go('auction', 'detail', c.id);
+  },
+
+  onMount(screen, id) { /* 필요시 마운트 후 이벤트 처리 */ }
+};
+
+/* ============================================================
+   앱 부팅
+   새 기능 추가 시 여기에 App.registerModule(새모듈) 한 줄 추가
+============================================================ */
+App.registerModule(AuctionModule);
+// App.registerModule(LoanModule);   // 예시: 대출관리 모듈 추가
+// App.registerModule(CalendarModule); // 예시: 일정관리 모듈 추가
+
+App.init();
+
+/* Service Worker 등록 (오프라인 지원) */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
